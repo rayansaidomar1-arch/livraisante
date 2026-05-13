@@ -1,0 +1,52 @@
+{
+  "name": "Livraisanté",
+  "short_name": "Livraisanté",
+  "description": "Compléments alimentaires livrés en 2h ou retrait en pharmacie partenaire",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["health", "shopping", "medical"],
+  "icons": [
+    { "src": "/icons/icon-72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-128.png",  "sizes": "128x128", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-144.png",  "sizes": "144x144", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-152.png",  "sizes": "152x152", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-180.png",  "sizes": "180x180", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-384.png",  "sizes": "384x384", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Accueil Livraisanté"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Commande rapide",
+      "short_name": "Commander",
+      "description": "Chercher un complément alimentaire",
+      "url": "/?shortcut=commande",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Click & Collect",
+      "short_name": "Retrait",
+      "description": "Réserver pour retrait en pharmacie",
+      "url": "/?shortcut=clickcollect",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}
