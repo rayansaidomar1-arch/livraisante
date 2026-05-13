@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Livraisanté — Compléments alimentaires livrés en 2h</title>
+
+  <!-- ── PWA Manifest ──────────────────────────────────────────── -->
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- ── Meta SEO ──────────────────────────────────────────────── -->
+  <meta name="description" content="Compléments alimentaires certifiés livrés en 2h ou retrait en pharmacie partenaire. Nat&amp;Form, Solgar, Pileje, Arkopharma." />
+  <meta name="application-name" content="Livraisanté" />
+  <meta name="author" content="Livraisanté" />
+
+  <!-- ── PWA iOS (Apple) ───────────────────────────────────────── -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Livraisanté" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+
+  <!-- ── PWA Android / Chrome ──────────────────────────────────── -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="msapplication-TileColor" content="#000000" />
+  <meta name="msapplication-TileImage" content="/icons/icon-144.png" />
+
+  <!-- ── Open Graph ────────────────────────────────────────────── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:title"       content="Livraisanté — Compléments alimentaires livrés en 2h" />
+  <meta property="og:description" content="Compléments alimentaires certifiés livrés en 2h ou retrait gratuit en pharmacie partenaire." />
+  <meta property="og:image"       content="/icons/icon-512.png" />
+
+  <!-- ── Favicon ───────────────────────────────────────────────── -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {} } };
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    body { background: #e8e8e8; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .qr-cell { display:inline-block; width:5px; height:5px; background:#111; margin:0.5px; }
+    .qr-empty { display:inline-block; width:5px; height:5px; margin:0.5px; }
+    ::-webkit-scrollbar { display: none; }
+    * { scrollbar-width: none; }
+    .screen-enter { animation: slideIn 0.28s cubic-bezier(.25,.46,.45,.94); }
+    .screen-back  { animation: slideBack 0.28s cubic-bezier(.25,.46,.45,.94); }
+    @keyframes slideIn   { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideBack { from { transform: translateX(-40%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .fade-up { animation: fadeUp 0.4s ease-out both; }
+    @keyframes fadeUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .pulse { animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .confetti { animation: pop 0.6s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    input, textarea { -webkit-appearance: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── CATALOGUE COMPLÉMENTS ALIMENTAIRES (décret 2006-352 / dir. 2002/46/CE) ── */
+const PRODUCTS = [
+  { id:'vitamine-d3', name:'Vitamine D3 2000 UI', brand:'Nat&Form', category:'Vitamines',
+    desc:'Cholécalciférol d\'origine naturelle — immunité, ossature et moral hivernal', form:'Capsules', qty:'60 capsules', ppv:12.90, emoji:'☀️',
+    tags:['vitamine d','immunité','os','moral','hiver','soleil','fatigue','défenses','carence'] },
+  { id:'vitamine-c-1000', name:'Vitamine C 1000mg Effervescent', brand:'Juvamine', category:'Vitamines',
+    desc:'Acide ascorbique effervescent — défenses immunitaires, tonus et récupération', form:'Comprimés effervescents', qty:'20 comprimés', ppv:8.50, emoji:'🍊',
+    tags:['vitamine c','immunité','fatigue','tonus','rhume','défenses','vitalité','prévention'] },
+  { id:'magnesium-marin', name:'Magnésium Marin + B6', brand:'Nat&Form', category:'Minéraux',
+    desc:'Magnésium d\'origine marine + vitamine B6 — fatigue nerveuse, stress et crampes', form:'Comprimés', qty:'90 comprimés', ppv:14.90, emoji:'🌊',
+    tags:['magnésium','fatigue','stress','crampes','sommeil','anxiété','nervosité','muscle','tension'] },
+  { id:'omega-3', name:'Oméga-3 EPA/DHA 1000mg', brand:'Solgar', category:'Acides gras',
+    desc:'Huile de poisson purifiée concentrée — cœur, cerveau, articulations et vision', form:'Capsules molles', qty:'60 capsules', ppv:22.90, emoji:'🐟',
+    tags:['oméga 3','cœur','cerveau','mémoire','articulations','concentration','cholestérol','yeux'] },
+  { id:'probiotiques', name:'Lactibiane Référence 10M', brand:'Pileje', category:'Probiotiques',
+    desc:'10 milliards de ferments lactiques — flore intestinale, confort digestif et immunité', form:'Gélules', qty:'30 gélules', ppv:19.90, emoji:'🦠',
+    tags:['probiotiques','intestin','digestion','flore','transit','ventre','ballonnements','immunité','microbiote'] },
+  { id:'melatonine', name:'Mélatonine 1mg', brand:'Arkorelax', category:'Sommeil',
+    desc:'Mélatonine physiologique — endormissement rapide, décalage horaire et qualité du sommeil', form:'Comprimés orodispersibles', qty:'30 comprimés', ppv:11.90, emoji:'🌙',
+    tags:['mélatonine','sommeil','endormissement','jet lag','insomnie','nuit','réveil','décalage horaire'] },
+  { id:'ashwagandha', name:'Ashwagandha KSM-66®', brand:'Nutri&Co', category:'Plantes adaptogènes',
+    desc:'Racine titrée à 5% withanolides — résistance au stress, vitalité et équilibre cortisol', form:'Gélules', qty:'60 gélules', ppv:24.90, emoji:'🌿',
+    tags:['ashwagandha','stress','cortisol','vitalité','adaptogène','anxiété','fatigue','énergie','burnout'] },
+  { id:'curcuma', name:'Curcuma + Pipérine BioPerine®', brand:'SuperDiet', category:'Plantes',
+    desc:'Curcumine hautement biodisponible — articulations, confort digestif et bien-être général', form:'Gélules', qty:'60 gélules', ppv:16.90, emoji:'🟡',
+    tags:['curcuma','articulations','inflammation','douleurs articulaires','sport','genoux','digestion','antioxydant'] },
+  { id:'charbon-vegetal', name:'Charbon Végétal Activé 300mg', brand:'Arkopharma', category:'Confort digestif',
+    desc:'Charbon de bois activé — gaz, ballonnements et digestion difficile après repas copieux', form:'Gélules', qty:'45 gélules', ppv:9.90, emoji:'⚫',
+    tags:['charbon','ballonnements','gaz','digestion','ventre','confort digestif','flatulences','repas'] },
+  { id:'echinacea', name:'Échinacée + Vitamine C', brand:'Arkopharma', category:'Immunité',
+    desc:'Échinacée purpurea titrée + vitamine C — stimulation naturelle des défenses immunitaires', form:'Comprimés', qty:'45 comprimés', ppv:13.90, emoji:'🌸',
+    tags:['échinacée','immunité','défenses','rhume','hiver','virus','infection','prévention','fatigue'] },
+  { id:'zinc-selenium', name:'Zinc Bisglycinate + Sélénium', brand:'Nat&Form', category:'Minéraux',
+    desc:'Zinc chélaté + sélénium organique — immunité, peau, cheveux et ongles', form:'Gélules', qty:'60 gélules', ppv:10.90, emoji:'💎',
+    tags:['zinc','sélénium','immunité','peau','cheveux','ongles','acné','antioxydant','carence'] },
+  { id:'collagene-marin', name:'Collagène Marin Hydrolysé', brand:'Nutri&Co', category:'Beauté & Articulations',
+    desc:'Peptides de collagène type I & III — peau, articulations, tendons et os', form:'Poudre à diluer', qty:'Pot 300 g', ppv:29.90, emoji:'✨',
+    tags:['collagène','peau','rides','articulations','tendons','beauté','anti-âge','élasticité','cartilage'] },
+  { id:'spiruline', name:'Spiruline Bio 500mg', brand:'Nat&Form', category:'Superaliments',
+    desc:'Spiruline platensis certifiée AB — énergie, protéines végétales complètes et fer', form:'Comprimés', qty:'200 comprimés', ppv:17.90, emoji:'💚',
+    tags:['spiruline','énergie','fer','protéines','végétal','sport','fatigue','carence','végétarien','vegan'] },
+  { id:'ginkgo', name:'Ginkgo Biloba 60mg', brand:'Arkopharma', category:'Plantes',
+    desc:'Ginkgo biloba titré à 24% flavonoïdes — circulation cérébrale, mémoire et concentration', form:'Gélules', qty:'45 gélules', ppv:14.90, emoji:'🍃',
+    tags:['ginkgo','mémoire','concentration','circulation','cerveau','sénior','cognition','mental'] },
+  { id:'biotine', name:'Biotine 5000 µg', brand:'Solgar', category:'Beauté',
+    desc:'Biotine haute dose — cheveux, ongles et peau — formulation premium sans excipients', form:'Comprimés', qty:'60 comprimés', ppv:18.90, emoji:'💇',
+    tags:['biotine','cheveux','ongles','peau','chute de cheveux','kératine','beauté','fragilité'] },
+  { id:'fer-bisglycinate', name:'Fer Bisglycinate 28mg', brand:'Nutri&Co', category:'Minéraux',
+    desc:'Fer chélaté ultra-biodisponible sans constipation — anémie, fatigue et vitalité', form:'Gélules', qty:'60 gélules', ppv:16.90, emoji:'🔴',
+    tags:['fer','anémie','fatigue','vitalité','sang','carence','femme','règles','grossesse'] },
+  { id:'valeriane', name:'Valériane + Passiflore', brand:'Arkorelax', category:'Sommeil & Stress',
+    desc:'Valériane officinale + passiflore — relaxation, endormissement et réduction de la tension nerveuse', form:'Comprimés', qty:'30 comprimés', ppv:12.90, emoji:'🌸',
+    tags:['valériane','passiflore','sommeil','relaxation','stress','nervosité','anxiété','détente','insomnie'] },
+  { id:'artichaut', name:'Artichaut + Pissenlit Bio', brand:'SuperDiet', category:'Détox & Foie',
+    desc:'Artichaut + pissenlit certifiés AB — soutien hépatique, digestion et drainage naturel', form:'Ampoules buvables', qty:'20 ampoules', ppv:11.90, emoji:'🌱',
+    tags:['artichaut','foie','digestion','détox','drainage','cholestérol','digestion difficile','lourdeur'] },
+  { id:'vitamine-b-complex', name:'Complexe Vitamines B', brand:'Solgar', category:'Vitamines',
+    desc:'B1 à B12 en formes actives — énergie cellulaire, système nerveux et réduction de la fatigue', form:'Comprimés', qty:'100 comprimés', ppv:19.90, emoji:'⚡',
+    tags:['vitamines b','énergie','nervosité','fatigue','concentration','stress','b12','b6','acide folique'] },
+  { id:'rhodiola', name:'Rhodiola Rosea 200mg', brand:'Arkopharma', category:'Plantes adaptogènes',
+    desc:'Rhodiola titrée à 3% rosavines — adaptogène, résistance au stress et performance mentale', form:'Gélules', qty:'45 gélules', ppv:15.90, emoji:'🌺',
+    tags:['rhodiola','stress','adaptogène','énergie','performance','fatigue','concentration','burnout','cognition'] },
+];
+
+/* ─── RÉSEAU PHARMACIES PARTENAIRES ──────────────────────────────── */
+// Chaque officine déclare les laboratoires qu'elle référence.
+// Le moteur sélectionne la plus proche ayant le bon labo en stock.
+const PHARMACIES = [
+  { id:'p01', name:'Pharmacie Centrale République',  address:'8 Bd du Temple, 75003 Paris',        distance:0.3, closeHour:20, phone:'01 42 72 03 23', brands:['Nat&Form','Arkopharma','Arkorelax','Pileje','Juvamine','SuperDiet','Solgar'] },
+  { id:'p02', name:'Grande Pharmacie Voltaire',       address:'126 Bd Voltaire, 75011 Paris',        distance:0.6, closeHour:20, phone:'01 43 79 18 04', brands:['Arkopharma','Arkorelax','Nat&Form','Juvamine','Pileje','Nutri&Co','Solgar'] },
+  { id:'p03', name:'Pharmacie du Marché d\'Aligre',  address:'45 rue d\'Aligre, 75012 Paris',       distance:0.9, closeHour:19, phone:'01 43 43 12 98', brands:['Solgar','Nat&Form','SuperDiet','Arkopharma','Arkorelax'] },
+  { id:'p04', name:'Pharmacie Saint-Antoine',         address:'192 rue Saint-Antoine, 75004 Paris',  distance:1.2, closeHour:21, phone:'01 42 72 07 35', brands:['Pileje','Arkopharma','Arkorelax','Nutri&Co','Nat&Form','Solgar'] },
+  { id:'p05', name:'Pharmacie Bastille Opéra',        address:'2 Pl. de la Bastille, 75004 Paris',   distance:1.5, closeHour:20, phone:'01 43 07 89 12', brands:['Juvamine','Nat&Form','Arkopharma','Arkorelax','Pileje'] },
+  { id:'p06', name:'Pharmacie de la Nation',          address:'3 Pl. de la Nation, 75011 Paris',     distance:1.8, closeHour:19, phone:'01 43 48 27 61', brands:['Solgar','Pileje','SuperDiet','Nat&Form','Nutri&Co'] },
+  { id:'p07', name:'Pharmacie Ledru-Rollin',          address:'85 Av. Ledru-Rollin, 75012 Paris',    distance:2.1, closeHour:20, phone:'01 43 07 44 92', brands:['Arkopharma','Arkorelax','Juvamine','Nat&Form','SuperDiet'] },
+  { id:'p08', name:'Grande Pharmacie Oberkampf',      address:'168 rue Oberkampf, 75011 Paris',      distance:2.4, closeHour:21, phone:'01 43 57 88 03', brands:['Pileje','Solgar','Nutri&Co','SuperDiet','Arkopharma','Arkorelax','Nat&Form'] },
+  { id:'p09', name:'Pharmacie de l\'Hôtel de Ville', address:'40 rue de Rivoli, 75004 Paris',       distance:2.7, closeHour:20, phone:'01 42 74 17 89', brands:['Juvamine','Arkopharma','Arkorelax','Nat&Form','Solgar'] },
+  { id:'p10', name:'Pharmacie Marais Beaubourg',      address:'22 rue Beaubourg, 75003 Paris',       distance:3.0, closeHour:20, phone:'01 42 71 62 51', brands:['Pileje','Nutri&Co','SuperDiet','Nat&Form','Arkopharma','Arkorelax','Solgar'] },
+];
+
+function isPharmOpen(p) {
+  const h = new Date().getHours();
+  return h >= 8 && h < p.closeHour;
+}
+function getPharmaciesForProduct(product) {
+  return PHARMACIES.filter(p => p.brands.includes(product.brand)).sort((a,b) => a.distance - b.distance);
+}
+function getNearestOpenPharmacy(product) {
+  const list = getPharmaciesForProduct(product);
+  return list.find(isPharmOpen) || list[0] || PHARMACIES[0];
+}
+
+/* ─── UTILITAIRES ─────────────────────────────────────────────────── */
+function getRecommendations(query) {
+  const words = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .split(/[\s,'.\-!?]+/).filter(w => w.length > 2);
+  const scored = PRODUCTS.map(p => {
+    let s = 0;
+    const nameN = p.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    const brandN = p.brand.toLowerCase();
+    for (const w of words) {
+      if (nameN.includes(w)) s += 10;
+      if (brandN.includes(w)) s += 6;
+      for (const t of p.tags) {
+        const tn = t.normalize('NFD').replace(/[̀-ͯ]/g,'');
+        if (tn.includes(w) || w.includes(tn)) s += 3;
+      }
+      if (p.desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(w)) s += 1;
+    }
+    return { ...p, score: s };
+  });
+  scored.sort((a,b) => b.score - a.score);
+  const with_ = scored.filter(p => p.score > 0);
+  if (with_.length >= 3) return with_.slice(0,3);
+  const without = scored.filter(p => p.score === 0).sort(() => Math.random() - 0.5);
+  return [...with_, ...without].slice(0,3);
+}
+
+function getPricing(ppv) {
+  const livrePrice = Math.round(ppv * 0.95 * 100) / 100;
+  const subPrice   = Math.round(livrePrice * 0.85 * 100) / 100;
+  const savings    = Math.round((ppv - livrePrice) * 100) / 100;
+  const subSavings = Math.round((ppv - subPrice) * 100) / 100;
+  return {
+    ppv: ppv.toFixed(2),
+    livrePrice: livrePrice.toFixed(2),
+    subPrice: subPrice.toFixed(2),
+    savings: savings.toFixed(2),
+    subSavings: subSavings.toFixed(2),
+  };
+}
+
+function getSocialProof(id) {
+  let h = 0;
+  const s = id + new Date().toDateString();
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
+  const a = Math.abs(h);
+  return { orders: 12 + (a % 38), stock: 3 + (a % 7) };
+}
+
+function getDeliveryInfo() {
+  const h = new Date().getHours();
+  if (h < 17) return { text:`Livré aujourd'hui avant 20h`, sub:`Commandez dans les ${17-h}h`, urgent:true,  icon:'⚡' };
+  if (h < 21) return { text:'Livré demain matin avant 10h', sub:'Commandez avant ce soir', urgent:false, icon:'🚚' };
+  return       { text:'Livré demain avant midi',        sub:'Livraison express garantie', urgent:false, icon:'🚚' };
+}
+
+const fmt = n => parseFloat(n).toFixed(2).replace('.',',') + ' €';
+
+/* ─── LOGO SVG ────────────────────────────────────────────────────── */
+function LogoSVG({ size = 36, color = '#111111' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Gélule (partie haute du panier) */}
+      <rect x="13" y="3" width="28" height="46" rx="14" stroke={color} strokeWidth="6.5" fill="none"/>
+      <line x1="13" y1="26" x2="41" y2="26" stroke={color} strokeWidth="4.5"/>
+      {/* Cercle barré (partie basse du panier) */}
+      <circle cx="27" cy="59" r="15" stroke={color} strokeWidth="6.5" fill="none"/>
+      <line x1="16" y1="70" x2="38" y2="48" stroke={color} strokeWidth="4.5"/>
+      {/* Poignée du chariot (diagonale haut-droite) */}
+      <line x1="39" y1="15" x2="74" y2="2" stroke={color} strokeWidth="6.5" strokeLinecap="round"/>
+      {/* Barre inférieure du chariot */}
+      <line x1="6" y1="76" x2="68" y2="76" stroke={color} strokeWidth="6.5" strokeLinecap="round"/>
+      {/* Roues */}
+      <circle cx="20" cy="89" r="8" fill={color}/>
+      <circle cx="55" cy="89" r="8" fill={color}/>
+    </svg>
+  );
+}
+
+/* Faux QR code décoratif */
+function FakeQR({ size = 120 }) {
+  const pattern = [
+    [1,1,1,1,1,1,1,0,1,0,0,1,0,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1,0,0,1,1,0,1,0,1,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,0,0,1,0,1,0,0,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0],
+    [1,0,1,1,0,1,1,1,0,0,1,1,0,1,1,0,1,0,1,1,0],
+    [0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,1,0,0,1],
+    [1,0,1,1,0,1,1,1,0,1,1,0,1,0,1,0,1,0,1,1,0],
+    [0,1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,1,0,0,1],
+    [1,0,1,1,0,1,1,1,0,0,1,1,0,1,1,0,1,0,1,1,0],
+    [0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,0,0,1,0,1,0,0,1,0,1,0,0,1,0],
+    [1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,1,0,1,0,0,1],
+    [1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,0,1,0,0,1,0,0,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,1,0,0,1,1,0,1,0,0,1,0,0,0,0,0],
+    [1,1,1,1,1,1,1,0,1,0,0,1,0,0,1,1,1,1,1,1,1],
+  ];
+  const cell = Math.floor(size / pattern[0].length);
+  return (
+    <div style={{ display:'inline-block', lineHeight:0 }}>
+      {pattern.map((row, ri) => (
+        <div key={ri} style={{ display:'flex' }}>
+          {row.map((v, ci) => (
+            <div key={ci} style={{ width:cell, height:cell, background: v ? '#111' : '#fff' }}/>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── ÉCRAN ACCUEIL ───────────────────────────────────────────────── */
+function HomeScreen({ onSearch, onBack, deliveryMode, setDeliveryMode }) {
+  const [query, setQuery] = useState('');
+  const QUICK = [
+    { label:'Fatigue', emoji:'⚡' }, { label:'Sommeil', emoji:'🌙' },
+    { label:'Stress', emoji:'🧘' }, { label:'Immunité', emoji:'🛡️' },
+    { label:'Digestion', emoji:'🌿' }, { label:'Articulations', emoji:'💪' },
+  ];
+  const submit = q => { if (q.trim()) onSearch(q.trim()); };
+  const isCC = deliveryMode === 'clickcollect';
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      {/* Header */}
+      <div className="px-5 pt-6 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {onBack && (
+              <button onClick={onBack} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm active:bg-gray-200">←</button>
+            )}
+            <LogoSVG size={30} color="#111111" />
+            <span className="text-lg font-black text-gray-900 tracking-tight">Livraisanté</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+            <span className="text-xs font-semibold text-gray-700">En ligne</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Toggle Livraison / Click & Collect */}
+      <div className="px-5 pt-4 pb-2">
+        <div className="flex bg-gray-100 p-1 rounded-xl">
+          <button onClick={() => setDeliveryMode('livraison')}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${!isCC ? 'bg-gray-900 text-white shadow' : 'text-gray-500 active:text-gray-700'}`}>
+            🚚 Livraison express
+          </button>
+          <button onClick={() => setDeliveryMode('clickcollect')}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isCC ? 'bg-gray-900 text-white shadow' : 'text-gray-500 active:text-gray-700'}`}>
+            🏪 Click &amp; Collect
+          </button>
+        </div>
+        {isCC && (
+          <p className="text-xs text-gray-500 font-medium mt-2 text-center">
+            Réservez en ligne · Retirez en pharmacie · Gratuit
+          </p>
+        )}
+      </div>
+
+      {/* Hero */}
+      <div className="px-5 pt-4 pb-5">
+        <h1 className="text-3xl font-black text-gray-900 leading-snug">
+          {isCC ? <>Réservez vos<br/>compléments en ligne</> : <>Vos compléments,<br/>livrés en <span className="underline decoration-4 decoration-gray-300">2 heures</span></>}
+        </h1>
+        <p className="mt-2 text-sm text-gray-400 font-medium">
+          {isCC ? 'Retrait gratuit dans votre pharmacie partenaire' : 'Compléments alimentaires certifiés — livraison offerte'}
+        </p>
+      </div>
+
+      {/* Barre de recherche */}
+      <div className="px-5">
+        <div className="relative">
+          <input
+            type="text" value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submit(query)}
+            placeholder={isCC ? 'Symptôme ou complément alimentaire...' : 'Symptômes ou complément alimentaire...'}
+            className="w-full pl-12 pr-28 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
+          />
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+          {query.trim() && (
+            <button onClick={() => submit(query)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-xl active:bg-black">
+              Chercher
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Recherches rapides */}
+      <div className="px-5 mt-5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Vos besoins</p>
+        <div className="flex flex-wrap gap-2">
+          {QUICK.map(s => (
+            <button key={s.label} onClick={() => submit(s.label)}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-semibold active:bg-gray-200 transition-colors">
+              {s.emoji} {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Badges de confiance */}
+      <div className="mx-5 mt-6 bg-gray-50 rounded-2xl p-4 space-y-3">
+        {(isCC ? [
+          ['🏪','Retrait gratuit en pharmacie partenaire'],
+          ['⏱️','Prêt en 2h — préparez à votre rythme'],
+          ['✅','Compléments alimentaires déclarés DGCCRF'],
+          ['🔒','Données personnelles sécurisées RGPD'],
+        ] : [
+          ['✅','Compléments alimentaires déclarés DGCCRF'],
+          ['🌿','Marques certifiées — traçabilité garantie'],
+          ['🚚','Livraison discrète en 2h'],
+          ['🔒','Données personnelles sécurisées RGPD'],
+        ]).map(([icon,text]) => (
+          <div key={text} className="flex items-center gap-3">
+            <span className="text-lg">{icon}</span>
+            <span className="text-sm font-medium text-gray-700">{text}</span>
+            <span className="ml-auto text-gray-900 font-bold text-sm">✓</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Bandeau promo bas */}
+      <div className="mx-5 mt-4 mb-6 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
+        <span className="text-2xl">🎁</span>
+        <div>
+          <p className="text-xs font-bold text-amber-800">Cure mensuelle −15%</p>
+          <p className="text-xs text-amber-700">Recevez vos compléments chaque mois automatiquement</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── ÉCRAN ANALYSE ───────────────────────────────────────────────── */
+function AnalysisScreen({ query, onComplete }) {
+  const [done, setDone] = useState([]);
+  const [current, setCurrent] = useState(0);
+  const STEPS = [
+    { label:'Analyse de votre demande', icon:'🔍', detail:`"${query}"` },
+    { label:'Vérification des prix PPV', icon:'💰', detail:'Consultation GERS · Ospharm · pharmacie.fr' },
+    { label:'Sélection des pharmacies partenaires', icon:'🏥', detail:'Rayon 10 km · stock vérifié en temps réel' },
+    { label:'Personnalisation de votre offre', icon:'✨', detail:'Prix optimal calculé avec livraison incluse' },
+  ];
+  useEffect(() => {
+    const recs = getRecommendations(query);
+    let step = 0;
+    const t = setInterval(() => {
+      setDone(d => [...d, step]);
+      step++;
+      setCurrent(step);
+      if (step >= STEPS.length) {
+        clearInterval(t);
+        setTimeout(() => onComplete(recs), 500);
+      }
+    }, 780);
+    return () => clearInterval(t);
+  }, []);
+
+  const pct = (done.length / STEPS.length) * 100;
+  return (
+    <div className="flex flex-col min-h-screen items-center justify-center px-6 bg-white">
+      <div className="text-center mb-10">
+        <div className="text-6xl mb-4 confetti">💊</div>
+        <h2 className="text-xl font-black text-gray-900">Livraisanté</h2>
+        <p className="text-sm text-gray-400 mt-1">Recherche en cours…</p>
+      </div>
+      <div className="w-full space-y-3">
+        {STEPS.map((step, i) => {
+          const isDone = done.includes(i);
+          const isActive = current === i;
+          return (
+            <div key={i} className={`flex items-start gap-3 p-3.5 rounded-2xl transition-all duration-400 ${
+              isDone ? 'bg-gray-100' : isActive ? 'bg-amber-50' : 'bg-gray-50 opacity-40'
+            }`}>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 ${
+                isDone ? 'bg-gray-900 text-white' : isActive ? 'bg-amber-400 text-white pulse' : 'bg-gray-200 text-gray-400'
+              }`}>
+                {isDone ? '✓' : isActive ? '…' : step.icon}
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className={`text-sm font-bold ${isDone ? 'text-gray-900' : 'text-gray-700'}`}>{step.label}</p>
+                {(isDone || isActive) && <p className="text-xs text-gray-400 mt-0.5 truncate">{step.detail}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="w-full mt-6 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+        <div className="bg-gray-900 h-1.5 rounded-full transition-all duration-500" style={{ width: pct+'%' }} />
+      </div>
+      <p className="mt-3 text-xs text-gray-400 font-medium">{Math.round(pct)}% complété</p>
+    </div>
+  );
+}
+
+/* ─── ÉCRAN RÉSULTATS ─────────────────────────────────────────────── */
+const MEDALS = ['🥇','🥈','🥉'];
+const RANKS  = ['Meilleure option','Deuxième choix','Alternative'];
+const RANK_BG = ['bg-gray-900','bg-gray-700','bg-gray-500'];
+
+function ResultsScreen({ query, recs, isSubscription, onSelectProduct, onBack }) {
+  const delivery = getDeliveryInfo();
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50 screen-enter">
+      <div className="px-4 pt-4 pb-3 bg-white border-b border-gray-100 flex items-center gap-3">
+        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 font-bold active:bg-gray-200">←</button>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-gray-400 font-medium">Résultats pour</p>
+          <p className="text-sm font-bold text-gray-900 truncate">"{query}"</p>
+        </div>
+      </div>
+
+      <div className="px-4 py-2.5 bg-gray-900">
+        <p className="text-xs font-bold text-white">✅ {recs.length} produits recommandés • Prix PPV vérifié</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-4">
+        {recs.map((product, i) => {
+          const pr = getPricing(product.ppv);
+          const proof = getSocialProof(product.id);
+          const price = isSubscription ? pr.subPrice : pr.livrePrice;
+          const savings = isSubscription ? pr.subSavings : pr.savings;
+          return (
+            <div key={product.id} onClick={() => onSelectProduct(product, i)}
+              className={`bg-white rounded-2xl overflow-hidden shadow-sm border fade-up ${
+                i===0 ? 'border-gray-900 shadow-gray-100' : 'border-gray-100'
+              }`} style={{ animationDelay: i*0.1+'s' }}>
+              {/* Badge rang */}
+              <div className={`px-4 py-2.5 flex items-center gap-2 ${RANK_BG[i]}`}>
+                <span className="text-xl">{MEDALS[i]}</span>
+                <span className="text-white text-xs font-black uppercase tracking-wide">{RANKS[i]}</span>
+              </div>
+              {/* Corps */}
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">{product.emoji}</div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-black text-gray-900 text-sm leading-tight">{product.name}</h3>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">{product.brand} · {product.qty}</p>
+                    <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{product.desc}</p>
+                  </div>
+                </div>
+
+                {/* Prix */}
+                <div className="mt-4 flex items-end justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-xs text-gray-400 line-through">{fmt(pr.ppv)}</span>
+                      <span className="text-xs text-gray-400">prix pharmacie</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-gray-900">{fmt(price)}</span>
+                      <span className="text-xs text-gray-500 font-medium">livré</span>
+                    </div>
+                  </div>
+                  {parseFloat(savings) > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-right">
+                      <p className="text-xs text-amber-600 font-semibold">Économie</p>
+                      <p className="text-base font-black text-amber-700">−{fmt(savings)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Social proof + livraison */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="text-xs bg-orange-50 text-orange-600 border border-orange-100 px-2 py-1 rounded-full font-semibold">
+                    🔥 {proof.orders} commandes auj.
+                  </span>
+                  <span className="text-xs bg-red-50 text-red-600 border border-red-100 px-2 py-1 rounded-full font-semibold">
+                    📦 Plus que {proof.stock} en stock
+                  </span>
+                  <span className={`text-xs border px-2 py-1 rounded-full font-semibold ${
+                    delivery.urgent ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-600 border-gray-200'
+                  }`}>
+                    {delivery.icon} {delivery.text}
+                  </span>
+                </div>
+
+                {/* Officine de retrait */}
+                {(() => {
+                  const pharm = getNearestOpenPharmacy(product);
+                  return (
+                    <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl">
+                      <span className="text-base flex-shrink-0">📍</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-bold text-blue-800 truncate block">{pharm.name}</span>
+                        <span className="text-xs text-blue-500 font-medium">{pharm.distance} km · {isPharmOpen(pharm) ? `Ouvert jusqu'à ${pharm.closeHour}h` : 'Fermé'}</span>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${isPharmOpen(pharm) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {isPharmOpen(pharm) ? '✓ Dispo' : 'Fermé'}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                <button className={`w-full mt-4 py-3 rounded-xl font-bold text-sm transition-colors ${
+                  i===0 ? 'bg-gray-900 text-white active:bg-black' : 'bg-gray-100 text-gray-700 active:bg-gray-200'
+                }`}>
+                  {i===0 ? 'Voir ce produit →' : 'Sélectionner'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── ÉCRAN PRODUIT (détail) ──────────────────────────────────────── */
+function ProductScreen({ product, rank, isSubscription, setIsSubscription, onAddToCart, onBack, deliveryMode }) {
+  const pr = getPricing(product.ppv);
+  const proof = getSocialProof(product.id);
+  const delivery = getDeliveryInfo();
+  const price   = isSubscription ? pr.subPrice   : pr.livrePrice;
+  const savings = isSubscription ? pr.subSavings : pr.savings;
+  const isCC = deliveryMode === 'clickcollect';
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white screen-enter">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 bg-white border-b border-gray-100 flex items-center gap-3">
+        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 font-bold active:bg-gray-200">←</button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="text-lg">{MEDALS[rank]}</span>
+          <h2 className="font-black text-gray-900 text-sm truncate">{product.name}</h2>
+        </div>
+      </div>
+
+      {/* Hero produit */}
+      <div className="bg-gray-50 px-5 py-8 text-center">
+        <div className="text-7xl mb-4">{product.emoji}</div>
+        <h1 className="text-xl font-black text-gray-900">{product.name}</h1>
+        <p className="text-sm text-gray-500 font-medium mt-1">{product.brand} · {product.form}</p>
+        <div className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-bold">
+          <span>💊</span><span>{product.category}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+        {/* Description */}
+        <div className="px-5 py-4">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Description</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{product.desc}</p>
+          <div className="mt-3 flex gap-2 flex-wrap">
+            <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg font-medium">📦 {product.qty}</span>
+            <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg font-medium">💊 {product.form}</span>
+          </div>
+        </div>
+
+        {/* Toggle abonnement */}
+        <div className="px-5 py-4">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Mode d'achat</p>
+          <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
+            <button onClick={() => setIsSubscription(false)}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                !isSubscription ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              }`}>
+              Achat unique
+            </button>
+            <button onClick={() => setIsSubscription(true)}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                isSubscription ? 'bg-gray-900 text-white shadow' : 'text-gray-500'
+              }`}>
+              🔄 Abonnement −15%
+            </button>
+          </div>
+          {isSubscription && (
+            <p className="mt-2 text-xs text-gray-700 font-semibold">
+              ✓ Livraison mensuelle automatique · Résiliable à tout moment
+            </p>
+          )}
+        </div>
+
+        {/* Prix */}
+        <div className="px-5 py-4">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Prix</p>
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm text-gray-400 line-through font-medium">{fmt(pr.ppv)}</span>
+                <span className="text-xs text-gray-400">prix pharmacie</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black text-gray-900">{fmt(price)}</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1 font-medium">✓ Livraison incluse · ✓ Aucun frais caché</p>
+            </div>
+            {parseFloat(savings) > 0 && (
+              <div className="bg-amber-50 border-2 border-amber-200 px-4 py-3 rounded-2xl text-center">
+                <p className="text-xs text-amber-600 font-bold">Vous économisez</p>
+                <p className="text-2xl font-black text-amber-700 mt-0.5">−{fmt(savings)}</p>
+                <p className="text-xs text-amber-500 font-medium">vs pharmacie</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Social proof */}
+        <div className="px-5 py-4">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Disponibilité</p>
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-orange-500 text-base">🔥</span>
+              <span className="font-bold text-gray-800">{proof.orders} personnes</span>
+              <span className="text-gray-500">ont commandé aujourd'hui</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-base">📦</span>
+              <span className="font-bold text-gray-800">Plus que {proof.stock} en stock</span>
+              <span className="text-gray-500">en officine partenaire</span>
+            </div>
+            <div className={`flex items-center gap-3 text-sm font-bold ${delivery.urgent ? 'text-green-700' : 'text-gray-700'}`}>
+              <span className="text-base">{delivery.icon}</span>
+              <span>{delivery.text}</span>
+              {delivery.urgent && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Urgent</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Pharmacies partenaires */}
+        {(() => {
+          const pharmaList = getPharmaciesForProduct(product);
+          const nearest    = getNearestOpenPharmacy(product);
+          const openCount  = pharmaList.filter(isPharmOpen).length;
+          return (
+            <div className="px-5 py-4">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Officines partenaires</p>
+              {/* Officine principale */}
+              <div className={`border-2 rounded-2xl p-4 mb-3 ${isPharmOpen(nearest) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isPharmOpen(nearest) ? 'bg-blue-100' : 'bg-gray-100'}`}>📍</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-gray-900 text-sm leading-tight">{nearest.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{nearest.address}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">📞 {nearest.phone}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isPharmOpen(nearest) ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-600'}`}>
+                        {isPharmOpen(nearest) ? `✓ Ouvert jusqu'à ${nearest.closeHour}h00` : '✗ Fermé actuellement'}
+                      </span>
+                      <span className="text-xs text-gray-500 font-medium">📏 {nearest.distance} km</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Autres officines (liste compacte) */}
+              <div className="bg-white border border-gray-100 rounded-xl divide-y divide-gray-50">
+                {pharmaList.slice(1, 4).map(p => (
+                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5">
+                    <span className="text-base flex-shrink-0">🏥</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-700 truncate">{p.name}</p>
+                      <p className="text-xs text-gray-400">{p.distance} km · {p.address.split(',')[1]?.trim()}</p>
+                    </div>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${isPharmOpen(p) ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                      {isPharmOpen(p) ? 'Ouvert' : 'Fermé'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-2.5 font-medium">
+                🏥 {openCount} officine{openCount > 1 ? 's' : ''} ouverte{openCount > 1 ? 's' : ''} · {pharmaList.length} partenaires au total
+              </p>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* CTA */}
+      <div className="px-5 py-4 bg-white border-t border-gray-100">
+        <button onClick={onAddToCart}
+          className="w-full py-4 bg-gray-900 text-white font-black text-base rounded-2xl active:bg-black shadow-lg shadow-gray-300 transition-all active:scale-98">
+          {isCC ? `Réserver pour retrait · ${fmt(price)}` : `Commander pour ${fmt(price)}`}
+        </button>
+        <p className="text-center text-xs text-gray-400 mt-2 font-medium">
+          {isCC ? 'Retrait gratuit · Prêt en 2h · Sans frais' : 'Prix tout inclus · Paiement 100% sécurisé'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── ÉCRAN PAIEMENT ──────────────────────────────────────────────── */
+function PaymentScreen({ product, isSubscription, onConfirm, onBack, deliveryMode }) {
+  const [payMethod, setPayMethod] = useState('card');
+  const [address, setAddress] = useState('');
+  const pr = getPricing(product.ppv);
+  const delivery = getDeliveryInfo();
+  const price   = isSubscription ? pr.subPrice   : pr.livrePrice;
+  const savings = isSubscription ? pr.subSavings : pr.savings;
+  const isCC = deliveryMode === 'clickcollect';
+
+  const PAY = [
+    { id:'card', label:'Carte bancaire', icon:'💳' },
+    { id:'apple', label:'Apple Pay', icon:'🍎' },
+    { id:'paypal', label:'PayPal', icon:'🔵' },
+  ];
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50 screen-enter">
+      <div className="px-4 pt-4 pb-3 bg-white border-b border-gray-100 flex items-center gap-3">
+        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-700 font-bold active:bg-gray-200">←</button>
+        <h2 className="flex-1 font-black text-gray-900 text-sm">{isCC ? 'Réservation Click & Collect' : 'Paiement'}</h2>
+        <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full">🔒 SSL</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-4">
+        {/* Recap commande */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Votre complément</p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-2xl">{product.emoji}</div>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-gray-900 text-sm">{product.name}</p>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">{product.brand} · {product.qty}</p>
+              {isSubscription && (
+                <span className="inline-block mt-1 px-2 py-0.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-full">🔄 Abonnement mensuel</span>
+              )}
+            </div>
+          </div>
+          <div className={`mt-3 p-2.5 rounded-xl flex items-center gap-2.5 ${delivery.urgent ? 'bg-emerald-50' : 'bg-gray-50'}`}>
+            <span className="text-lg">{delivery.icon}</span>
+            <div>
+              <p className="text-xs font-bold text-gray-800">{delivery.text}</p>
+              <p className="text-xs text-gray-400">{delivery.sub}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Officine — Retrait livreur ou Click & Collect */}
+        {(() => {
+          const nearest = getNearestOpenPharmacy(product);
+          return (
+            <div className={`bg-white rounded-2xl border-2 p-4 ${isCC ? 'border-gray-900' : 'border-gray-200'}`}>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                {isCC ? '🏪 Votre pharmacie de retrait' : '🛵 Retrait livreur'}
+              </p>
+              <div className="flex items-start gap-3">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${isCC ? 'bg-gray-100' : 'bg-gray-100'}`}>📍</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-gray-900 text-sm">{nearest.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{nearest.address}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">📞 {nearest.phone}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isPharmOpen(nearest) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      {isPharmOpen(nearest) ? `Ouvert jusqu'à ${nearest.closeHour}h` : 'Fermé'}
+                    </span>
+                    <span className="text-xs text-gray-400">{nearest.distance} km</span>
+                  </div>
+                </div>
+              </div>
+              <div className={`mt-3 px-3 py-2 rounded-xl ${isCC ? 'bg-gray-100' : 'bg-gray-50'}`}>
+                <p className="text-xs font-semibold text-gray-700">
+                  {isCC
+                    ? '🕐 Votre commande sera prête en ~2h. Présentez votre QR code à la pharmacie.'
+                    : 'Le livreur se rend dans cette officine, récupère votre complément et vous le livre directement.'}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Adresse de livraison — masquée en Click & Collect */}
+        {!isCC && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Adresse de livraison</p>
+            <input
+              type="text" value={address} onChange={e => setAddress(e.target.value)}
+              placeholder="Ex : 12 rue de la Paix, 75001 Paris"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900"
+            />
+          </div>
+        )}
+
+        {/* Prix total */}
+        <div className="bg-gray-900 rounded-2xl p-5 text-white">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-bold opacity-80">{isCC ? 'Total réservation' : 'Total à payer'}</p>
+              <p className="text-4xl font-black mt-1">{fmt(price)}</p>
+              <p className="text-xs opacity-70 mt-1.5 font-medium">{isCC ? 'Retrait gratuit · Aucun frais' : 'Livraison incluse · Aucun frais caché'}</p>
+            </div>
+            {parseFloat(savings) > 0 && (
+              <div className="bg-white/20 backdrop-blur rounded-xl px-3 py-2.5 text-right">
+                <p className="text-xs opacity-80 font-bold">Économie</p>
+                <p className="text-xl font-black mt-0.5">−{fmt(savings)}</p>
+                <p className="text-xs opacity-60 font-medium">vs pharmacie</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Méthode de paiement */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Mode de paiement</p>
+          <div className="space-y-2">
+            {PAY.map(m => (
+              <button key={m.id} onClick={() => setPayMethod(m.id)}
+                className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all ${
+                  payMethod===m.id ? 'border-gray-900 bg-gray-100' : 'border-gray-100 bg-gray-50 active:bg-gray-100'
+                }`}>
+                <span className="text-xl">{m.icon}</span>
+                <span className={`font-bold text-sm ${payMethod===m.id ? 'text-gray-900' : 'text-gray-700'}`}>{m.label}</span>
+                {payMethod===m.id && <span className="ml-auto text-gray-900 font-black">✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 py-4 bg-white border-t border-gray-100">
+        <button onClick={onConfirm}
+          className="w-full py-4 bg-gray-900 text-white font-black text-base rounded-2xl active:bg-black shadow-lg shadow-gray-300">
+          {isCC ? `✓ Confirmer ma réservation · ${fmt(price)}` : `Confirmer ma commande · ${fmt(price)}`}
+        </button>
+        <div className="flex items-center justify-center gap-5 mt-3">
+          <span className="text-xs text-gray-400 font-medium">🔒 Paiement sécurisé</span>
+          <span className="text-xs text-gray-400 font-medium">🛡️ RGPD</span>
+          <span className="text-xs text-gray-400 font-medium">✓ Satisfait ou remboursé</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── ÉCRAN CONFIRMATION ──────────────────────────────────────────── */
+function ConfirmationScreen({ product, isSubscription, onRestart, deliveryMode }) {
+  const pr = getPricing(product.ppv);
+  const delivery = getDeliveryInfo();
+  const nearest  = getNearestOpenPharmacy(product);
+  const price   = isSubscription ? pr.subPrice   : pr.livrePrice;
+  const savings = isSubscription ? pr.subSavings : pr.savings;
+  const orderId = useRef(100000 + Math.floor(Math.random() * 900000)).current;
+  const isCC = deliveryMode === 'clickcollect';
+
+  return (
+    <div className="flex flex-col min-h-screen px-6 bg-white text-center screen-enter overflow-y-auto py-8">
+      {/* Check animé */}
+      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-4xl confetti mx-auto mb-5">
+        {isCC ? '🏪' : '✅'}
+      </div>
+      <h1 className="text-2xl font-black text-gray-900">
+        {isCC ? 'Réservation confirmée !' : 'Commande confirmée !'}
+      </h1>
+      <p className="text-sm text-gray-500 font-medium mt-2">{product.name} · {fmt(price)} payé</p>
+
+      {/* QR code Click & Collect */}
+      {isCC && (
+        <div className="mt-6 bg-white border-2 border-gray-900 rounded-2xl p-5">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Votre code de retrait</p>
+          <div className="flex justify-center mb-3">
+            <div className="border border-gray-200 rounded-xl p-3 bg-white inline-block">
+              <FakeQR size={126} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-gray-900 tracking-widest">#{orderId}</p>
+          <div className="mt-3 bg-gray-100 rounded-xl px-4 py-2.5">
+            <p className="text-xs font-black text-gray-700">{nearest.name}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{nearest.address}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block animate-pulse"></span>
+            <p className="text-xs font-bold text-gray-700">Commande préparée dans ~2h</p>
+          </div>
+        </div>
+      )}
+
+      {/* Récap commande */}
+      <div className="w-full mt-4 bg-gray-50 rounded-2xl p-4 text-left space-y-3">
+        {(isCC ? [
+          ['N° réservation', `#${orderId}`],
+          ['Pharmacie de retrait', nearest.name],
+          ['Prêt dans', '~2 heures'],
+          parseFloat(savings)>0 && ['Économie', `−${fmt(savings)} 🎉`],
+        ] : [
+          ['N° commande', `#${orderId}`],
+          ['Retrait livreur', nearest.name],
+          ['Livraison', delivery.text],
+          parseFloat(savings)>0 && ['Économie réalisée', `−${fmt(savings)} 🎉`],
+          isSubscription && ['Abonnement', 'Actif · renouvellement dans 30j 🔄'],
+        ]).filter(Boolean).map(([label, val]) => (
+          <div key={label} className="flex items-center justify-between text-sm">
+            <span className="text-gray-500 font-medium">{label}</span>
+            <span className="font-black text-gray-900 text-right max-w-[55%]">{val}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 text-xs text-gray-400 font-medium">
+        {isCC ? 'Présentez ce QR code ou le numéro à la pharmacie' : 'Un SMS de suivi vous sera envoyé dans quelques minutes'}
+      </p>
+
+      <div className="w-full mt-6 space-y-3">
+        <button className="w-full py-3.5 bg-gray-900 text-white font-black rounded-2xl active:bg-black">
+          {isCC ? 'Itinéraire vers la pharmacie →' : 'Suivre ma livraison →'}
+        </button>
+        <button onClick={onRestart}
+          className="w-full py-3.5 bg-gray-100 text-gray-700 font-bold rounded-2xl active:bg-gray-200">
+          Nouvelle recherche
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SÉLECTEUR DE RÔLE ─────────────────────────────────────────── */
+function AppSelector({ onSelect }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-black items-center justify-center px-6 py-10">
+      {/* Logo + marque */}
+      <div className="text-center mb-12 fade-up">
+        <div className="flex items-center justify-center mb-5">
+          <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-2xl">
+            <LogoSVG size={56} color="#111111" />
+          </div>
+        </div>
+        <h1 className="text-4xl font-black text-white tracking-tight leading-none">
+          Livrai<span className="text-white">santé</span>
+        </h1>
+        <p className="text-gray-400 text-sm mt-3 font-medium tracking-wide">Compléments alimentaires · Livraison express</p>
+      </div>
+
+      {/* Cartes de rôles */}
+      <div className="w-full space-y-3 fade-up">
+        {[
+          { role:'patient',   emoji:'🛍️', title:'Je suis patient',   sub:'Commander mes compléments',        primary:true },
+          { role:'livreur',   emoji:'🛵', title:'Je suis livreur',   sub:'Gérer mes missions de livraison',   primary:false },
+          { role:'pharmacie', emoji:'🏥', title:'Je suis pharmacie', sub:'Accéder à mon espace partenaire',   primary:false },
+        ].map(r => (
+          <button key={r.role} onClick={() => onSelect(r.role)}
+            className={`w-full rounded-2xl p-5 flex items-center gap-4 transition-all active:scale-95 ${
+              r.primary
+                ? 'bg-white shadow-2xl'
+                : 'bg-white/8 border border-white/15 active:bg-white/15'
+            }`}>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 ${r.primary ? 'bg-gray-100' : 'bg-white/10'}`}>
+              {r.emoji}
+            </div>
+            <div className="text-left flex-1">
+              <p className={`font-black text-base ${r.primary ? 'text-gray-900' : 'text-white'}`}>{r.title}</p>
+              <p className={`text-sm font-medium mt-0.5 ${r.primary ? 'text-gray-500' : 'text-gray-400'}`}>{r.sub}</p>
+            </div>
+            <span className={`text-xl flex-shrink-0 font-bold ${r.primary ? 'text-gray-300' : 'text-white/30'}`}>›</span>
+          </button>
+        ))}
+      </div>
+      <p className="text-gray-600 text-xs mt-10 text-center font-medium">Compléments alimentaires déclarés DGCCRF · Paris & Île-de-France</p>
+    </div>
+  );
+}
+
+/* ─── INTERFACE LIVREUR ──────────────────────────────────────────── */
+const MOCK_MISSIONS = [
+  { id:'m1', product:'Vitamine D3 2000 UI', brand:'Nat&Form', qty:'60 capsules',
+    pharmacy:'Pharmacie Centrale République', pharmacyAddr:'8 Bd du Temple, 75003 Paris',
+    client:'Marie D.', clientAddr:'45 rue de la Roquette, 75011 Paris',
+    dist:'1.2 km', earn:4.50, time:'~15 min', urgent:true },
+  { id:'m2', product:'Ashwagandha KSM-66®', brand:'Nutri&Co', qty:'60 gélules',
+    pharmacy:'Grande Pharmacie Voltaire', pharmacyAddr:'126 Bd Voltaire, 75011 Paris',
+    client:'Thomas R.', clientAddr:'12 rue Oberkampf, 75011 Paris',
+    dist:'0.8 km', earn:3.80, time:'~10 min', urgent:false },
+  { id:'m3', product:'Oméga-3 EPA/DHA 1000mg', brand:'Solgar', qty:'60 capsules molles',
+    pharmacy:'Pharmacie Saint-Antoine', pharmacyAddr:'192 rue Saint-Antoine, 75004 Paris',
+    client:'Lucie M.', clientAddr:'7 rue du Faubourg Saint-Antoine, 75011 Paris',
+    dist:'2.1 km', earn:5.20, time:'~20 min', urgent:false },
+];
+
+function LivreurLanding({ onSignup, onLogin, onBack }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <div className="px-5 pt-5 pb-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 active:bg-gray-200">←</button>
+        <span className="font-black text-gray-900">Espace livreur</span>
+      </div>
+      <div className="bg-gradient-to-b from-slate-800 to-slate-900 px-6 pt-10 pb-12 text-center">
+        <div className="text-6xl mb-4">🛵</div>
+        <h1 className="text-2xl font-black text-white">Livrez avec Livraisanté</h1>
+        <p className="text-slate-400 text-sm mt-2 font-medium">Flexibilité totale · Paiement hebdomadaire · Secteur santé porteur</p>
+      </div>
+      <div className="px-5 py-5 space-y-3">
+        {[
+          ['💰','Jusqu\'à 15 €/h','Tarification transparente par livraison'],
+          ['⚡','Paiement chaque mardi','Virement SEPA automatique'],
+          ['🗓️','Vos propres horaires','Activez-vous quand vous voulez'],
+          ['🛡️','Couverture accident','Assurance incluse pendant les missions'],
+        ].map(([icon,title,sub]) => (
+          <div key={title} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+            <span className="text-2xl flex-shrink-0">{icon}</span>
+            <div>
+              <p className="font-bold text-gray-900 text-sm">{title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="px-5 pb-6 space-y-3 mt-auto">
+        <button onClick={onSignup} className="w-full py-4 bg-gray-900 text-white font-black rounded-2xl active:bg-black">Commencer l'inscription →</button>
+        <button onClick={onLogin} className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl active:bg-gray-200">J'ai déjà un compte</button>
+      </div>
+    </div>
+  );
+}
+
+const LIVREUR_STEPS = ['Identité','Véhicule','Statut juridique','Documents','IBAN & Signature'];
+
+function LivreurSignup({ onComplete, onBack }) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({ vehicle:'velo', status:'ae' });
+  const set = (k,v) => setForm(f => ({...f,[k]:v}));
+  const next = () => step < 4 ? setStep(s=>s+1) : onComplete();
+  const prev = () => step > 0 ? setStep(s=>s-1) : onBack();
+  const VEHICLES = [
+    { id:'velo',    emoji:'🚲',  label:'Vélo musculaire',   note:'Aucun permis requis' },
+    { id:'veloe',   emoji:'⚡🚲', label:'Vélo électrique',   note:'Aucun permis requis' },
+    { id:'trot',    emoji:'🛴',  label:'Trottinette élec.', note:'Assurance RC Pro requise' },
+    { id:'scooter', emoji:'🛵',  label:'Scooter / Moto',    note:'Permis AM ou A requis' },
+    { id:'voiture', emoji:'🚗',  label:'Voiture',           note:'Permis B requis' },
+  ];
+  const needsPermit = ['scooter','voiture'].includes(form.vehicle);
+  const steps = [
+    <div key={0} className="space-y-3">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Informations personnelles</p>
+      {[['Prénom','prenom','text'],['Nom','nom','text'],['Email','email','email'],['Téléphone','tel','tel'],['Date de naissance','dob','date']].map(([lbl,k,t]) => (
+        <div key={k}>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">{lbl}</label>
+          <input type={t} placeholder={lbl} value={form[k]||''} onChange={e=>set(k,e.target.value)}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900"/>
+        </div>
+      ))}
+    </div>,
+    <div key={1} className="space-y-2">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Type de véhicule</p>
+      {VEHICLES.map(v => (
+        <button key={v.id} onClick={()=>set('vehicle',v.id)}
+          className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${form.vehicle===v.id?'border-gray-900 bg-gray-100':'border-gray-100 bg-gray-50 active:bg-gray-100'}`}>
+          <span className="text-2xl">{v.emoji}</span>
+          <div className="flex-1">
+            <p className="font-bold text-gray-900 text-sm">{v.label}</p>
+            <p className="text-xs text-gray-500">{v.note}</p>
+          </div>
+          {form.vehicle===v.id && <span className="text-emerald-500 font-black">✓</span>}
+        </button>
+      ))}
+    </div>,
+    <div key={2} className="space-y-4">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Statut juridique</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p className="text-xs font-bold text-blue-800 mb-1">ℹ️ Obligation légale (art. L7342-1 Code du travail)</p>
+        <p className="text-xs text-blue-700">Les livreurs de plateformes exercent en <strong>auto-entrepreneur</strong> (micro-entrepreneur). Un numéro SIRET est obligatoire avant la première mission.</p>
+      </div>
+      {[{id:'ae',emoji:'✅',label:'J\'ai déjà un SIRET',sub:'Je suis auto-entrepreneur immatriculé'},
+        {id:'create',emoji:'📝',label:'Je dois créer mon statut',sub:'Inscription URSSAF gratuite (~10 min)'}].map(s=>(
+        <button key={s.id} onClick={()=>set('status',s.id)}
+          className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left ${form.status===s.id?'border-gray-900 bg-gray-100':'border-gray-200 bg-white active:bg-gray-50'}`}>
+          <span className="text-xl">{s.emoji}</span>
+          <div className="flex-1"><p className="font-bold text-gray-900 text-sm">{s.label}</p><p className="text-xs text-gray-500">{s.sub}</p></div>
+        </button>
+      ))}
+      {form.status==='ae' && (
+        <div>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">Numéro SIRET (14 chiffres)</label>
+          <input type="text" maxLength={14} placeholder="Ex : 12345678901234" value={form.siret||''} onChange={e=>set('siret',e.target.value.replace(/\D/g,''))}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-gray-900"/>
+        </div>
+      )}
+      {form.status==='create' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+          <p className="text-xs font-bold text-amber-800">Créer votre statut auto-entrepreneur</p>
+          <p className="text-xs text-amber-700">Gratuit sur autoentrepreneur.urssaf.fr — SIRET délivré sous 24-48h. Code APE : 5320Z (Autres activités de poste et de courrier).</p>
+          <button className="w-full py-2.5 bg-amber-500 text-white font-bold rounded-xl text-xs active:bg-amber-600">Ouvrir autoentrepreneur.urssaf.fr →</button>
+        </div>
+      )}
+    </div>,
+    <div key={3} className="space-y-3">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Documents requis</p>
+      {[
+        { id:'cni',       emoji:'🪪', label:'Pièce d\'identité',         sub:'CNI ou Passeport en cours de validité', req:true },
+        { id:'assurance', emoji:'🛡️', label:'Attestation RC Pro',         sub:'Couvre vos activités de livraison',     req:true },
+        { id:'permis',    emoji:'📋', label:'Permis de conduire',          sub:'Obligatoire pour véhicules motorisés',  req:needsPermit },
+        { id:'kbis',      emoji:'📄', label:'Attestation URSSAF / K-bis',  sub:'Justificatif de votre statut AE',       req:true },
+      ].filter(d=>d.req).map(doc=>(
+        <div key={doc.id} className={`p-4 rounded-xl border-2 ${form['doc_'+doc.id]?'border-gray-900 bg-gray-100':'border-gray-200 bg-gray-50'}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-xl">{doc.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-gray-900 text-sm">{doc.label}</p>
+              <p className="text-xs text-gray-500">{doc.sub}</p>
+            </div>
+            <button onClick={()=>set('doc_'+doc.id,true)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 ${form['doc_'+doc.id]?'bg-gray-900 text-white':'bg-white border border-gray-300 text-gray-700 active:bg-gray-50'}`}>
+              {form['doc_'+doc.id]?'✓ Téléversé':'Importer'}
+            </button>
+          </div>
+        </div>
+      ))}
+      <p className="text-xs text-gray-400 font-medium">🔒 Documents chiffrés AES-256 · Vérifiés sous 24h par notre équipe</p>
+    </div>,
+    <div key={4} className="space-y-4">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Coordonnées bancaires</p>
+      <div>
+        <label className="text-xs font-bold text-gray-500 mb-1 block">IBAN</label>
+        <input type="text" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX" value={form.iban||''} onChange={e=>set('iban',e.target.value)}
+          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-gray-900"/>
+        <p className="text-xs text-gray-400 mt-1">Paiement chaque mardi par virement SEPA</p>
+      </div>
+      <div>
+        <label className="text-xs font-bold text-gray-500 mb-1 block">Titulaire du compte</label>
+        <input type="text" placeholder="Prénom Nom" value={form.ibanName||''} onChange={e=>set('ibanName',e.target.value)}
+          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900"/>
+      </div>
+      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-1.5">
+        <p className="text-xs font-black text-gray-700 mb-2">Documents à signer :</p>
+        {['Contrat de prestataire de services Livraisanté','Charte des livreurs (art. L7342-1 Code du travail)','Conditions générales d\'utilisation','Politique de protection des données (RGPD)'].map(doc=>(
+          <label key={doc} className="flex items-start gap-2.5 cursor-pointer py-0.5">
+            <input type="checkbox" checked={!!form['sign_'+doc]} onChange={e=>set('sign_'+doc,e.target.checked)} className="mt-0.5 accent-emerald-600"/>
+            <span className="text-xs text-gray-700">{doc}</span>
+          </label>
+        ))}
+      </div>
+    </div>,
+  ];
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <div className="px-5 pt-5 pb-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={prev} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 active:bg-gray-200">←</button>
+        <div className="flex-1">
+          <p className="text-xs text-gray-400 font-medium">Étape {step+1}/{LIVREUR_STEPS.length}</p>
+          <p className="text-sm font-black text-gray-900">{LIVREUR_STEPS[step]}</p>
+        </div>
+      </div>
+      <div className="px-5 pt-3 pb-1">
+        <div className="flex gap-1">{LIVREUR_STEPS.map((_,i)=><div key={i} className={`flex-1 h-1 rounded-full transition-all ${i<=step?'bg-gray-900':'bg-gray-200'}`}/>)}</div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-5">{steps[step]}</div>
+      <div className="px-5 py-4 border-t border-gray-100">
+        <button onClick={next} className="w-full py-4 bg-gray-900 text-white font-black rounded-2xl active:bg-black">
+          {step<4?'Continuer →':'✓ Valider mon inscription'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LivreurDashboard({ onBack }) {
+  const [isOnline, setIsOnline] = useState(false);
+  const [activeMission, setActiveMission] = useState(null);
+  const [missionStep, setMissionStep] = useState(0);
+  const stats = { today:47.50, week:312.00, rating:4.7, deliveries:47, nextAt:50, nextLevel:'Argent' };
+
+  const MISSION_STEPS = activeMission ? [
+    { title:'Rendez-vous à l\'officine', addr:activeMission.pharmacyAddr, icon:'📍', action:'Confirmer l\'arrivée en pharmacie' },
+    { title:'Récupérez la commande', addr:`${activeMission.product} · ${activeMission.qty}`, icon:'📦', action:'Commande récupérée — Partir livrer' },
+    { title:'Livraison au client', addr:activeMission.clientAddr, icon:'🏠', action:'✓ Livraison confirmée' },
+  ] : [];
+
+  if (activeMission) return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <div className="bg-slate-800 px-5 pt-5 pb-5 flex items-center gap-3">
+        <button onClick={()=>{setActiveMission(null);setMissionStep(0);}} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center font-bold text-white">←</button>
+        <div className="flex-1"><p className="text-xs text-slate-400">Mission en cours</p><p className="text-sm font-black text-white truncate">{activeMission.product}</p></div>
+        <span className="font-black text-green-400">+{activeMission.earn.toFixed(2)} €</span>
+      </div>
+      <div className="px-5 pt-3 pb-1"><div className="flex gap-1">{MISSION_STEPS.map((_,i)=><div key={i} className={`flex-1 h-1.5 rounded-full ${i<=missionStep?'bg-gray-900':'bg-gray-200'}`}/>)}</div></div>
+      <div className="flex-1 px-5 py-5 space-y-4">
+        <div className="bg-gray-100 border-2 border-gray-300 rounded-2xl p-6 text-center">
+          <p className="text-5xl mb-3">{MISSION_STEPS[missionStep]?.icon}</p>
+          <p className="font-black text-gray-900 text-lg">{MISSION_STEPS[missionStep]?.title}</p>
+          <p className="text-sm text-gray-600 mt-1">{MISSION_STEPS[missionStep]?.addr}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+          {[['Officine',activeMission.pharmacy],['Client',activeMission.client],['Distance',activeMission.dist],['Gain estimé',`+${activeMission.earn.toFixed(2)} €`]].map(([lbl,val])=>(
+            <div key={lbl} className="flex justify-between text-sm"><span className="text-gray-500">{lbl}</span><span className="font-bold text-gray-900 text-right max-w-[60%]">{val}</span></div>
+          ))}
+        </div>
+      </div>
+      <div className="px-5 py-4 border-t border-gray-100">
+        <button onClick={()=>{ missionStep<2?setMissionStep(s=>s+1):(setActiveMission(null),setMissionStep(0)); }}
+          className="w-full py-4 bg-gray-900 text-white font-black rounded-2xl active:bg-black">
+          {MISSION_STEPS[missionStep]?.action}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="bg-slate-800 px-5 pt-5 pb-5">
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center font-bold text-white active:bg-white/25">←</button>
+          <div className="flex-1"><p className="text-xs text-slate-400">Bonjour 👋</p><p className="font-black text-white">Tableau de bord livreur</p></div>
+          <div className="text-right"><p className="text-xs text-slate-400">Niveau</p><p className="text-sm font-black text-amber-400">🥉 Bronze</p></div>
+        </div>
+        <div className={`rounded-2xl p-4 border-2 transition-all ${isOnline?'bg-green-600 border-green-500':'bg-slate-700 border-slate-600'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-black text-lg ${isOnline?'text-white':'text-slate-300'}`}>{isOnline?'🟢 En ligne':'⚫ Hors ligne'}</p>
+              <p className={`text-xs mt-0.5 ${isOnline?'text-green-200':'text-slate-500'}`}>{isOnline?'Vous recevez des missions':'Activez pour recevoir des missions'}</p>
+            </div>
+            <button onClick={()=>setIsOnline(o=>!o)} className={`w-14 h-7 rounded-full transition-all relative ${isOnline?'bg-white':'bg-slate-600'}`}>
+              <div className={`absolute top-1 w-5 h-5 rounded-full transition-all ${isOnline?'left-8 bg-green-600':'left-1 bg-slate-400'}`}/>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[["Aujourd'hui",`${stats.today.toFixed(2)} €`,'💰'],['Semaine',`${stats.week.toFixed(2)} €`,'📈'],['Note',`${stats.rating} ⭐`,'🏆']].map(([lbl,val,icon])=>(
+            <div key={lbl} className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
+              <p className="text-xl">{icon}</p><p className="font-black text-gray-900 text-sm mt-1">{val}</p><p className="text-xs text-gray-400">{lbl}</p>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Progression vers {stats.nextLevel} 🥈</p>
+            <p className="text-xs font-bold text-amber-600">{stats.deliveries}/{stats.nextAt}</p>
+          </div>
+          <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-400 to-amber-600 h-2 rounded-full" style={{width:`${(stats.deliveries/stats.nextAt)*100}%`}}/>
+          </div>
+          <p className="text-xs text-gray-500 mt-1.5">Plus que {stats.nextAt-stats.deliveries} livraisons pour passer Argent</p>
+        </div>
+        {isOnline?(
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">{MOCK_MISSIONS.length} missions disponibles près de vous</p>
+            <div className="space-y-3">
+              {MOCK_MISSIONS.map(m=>(
+                <div key={m.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  {m.urgent&&<div className="bg-orange-500 px-4 py-1.5"><span className="text-xs font-black text-white">🔥 MISSION URGENTE</span></div>}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0"><p className="font-black text-gray-900 text-sm truncate">{m.product}</p><p className="text-xs text-gray-500">{m.brand}</p></div>
+                      <div className="text-right flex-shrink-0"><p className="font-black text-green-600 text-lg">+{m.earn.toFixed(2)} €</p><p className="text-xs text-gray-400">{m.time}</p></div>
+                    </div>
+                    <div className="space-y-1 text-xs text-gray-600 mb-3">
+                      <div className="flex gap-2"><span>📍</span><span className="font-semibold">{m.pharmacy}</span></div>
+                      <div className="flex gap-2"><span>🏠</span><span>{m.clientAddr}</span></div>
+                      <div className="flex gap-2"><span>📏</span><span>{m.dist} au total</span></div>
+                    </div>
+                    <button onClick={()=>setActiveMission(m)} className="w-full py-2.5 bg-gray-900 text-white font-black rounded-xl text-sm active:bg-black">Accepter →</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ):(
+          <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-sm">
+            <p className="text-5xl mb-3">😴</p>
+            <p className="font-black text-gray-700">Vous êtes hors ligne</p>
+            <p className="text-sm text-gray-400 mt-1">Activez le mode En ligne pour recevoir des missions</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LivreurApp({ onBack }) {
+  const [screen, setScreen] = useState('landing');
+  if (screen==='landing')   return <LivreurLanding onSignup={()=>setScreen('signup')} onLogin={()=>setScreen('dashboard')} onBack={onBack}/>;
+  if (screen==='signup')    return <LivreurSignup onComplete={()=>setScreen('dashboard')} onBack={()=>setScreen('landing')}/>;
+  if (screen==='dashboard') return <LivreurDashboard onBack={onBack}/>;
+  return null;
+}
+
+/* ─── INTERFACE PHARMACIE ────────────────────────────────────────── */
+const PHARMA_PLANS = [
+  { id:'essentiel', name:'Partenaire Essentiel', price:390, priceM:'32,50', color:'bg-blue-600',
+    features:['Jusqu\'à 3 laboratoires référencés','Rayon de livraison 10 km','Badge "Partenaire" dans l\'app','Dashboard commandes','Support email 5j/7'] },
+  { id:'premium', name:'Partenaire Premium', price:690, priceM:'57,50', color:'bg-gray-900', badge:'⭐ Recommandé',
+    features:['Laboratoires illimités','Rayon de livraison 30 km','Priorité d\'affichage dans l\'app','Analytics & rapports mensuels','Support prioritaire 7j/7','Formation équipe incluse'] },
+];
+const MOCK_ORDERS = [
+  { id:'CMD-4821', product:'Vitamine D3 2000 UI',     brand:'Nat&Form',  client:'Marie D.',   time:'14h32', status:'pending'  },
+  { id:'CMD-4822', product:'Mélatonine 1mg',           brand:'Arkorelax', client:'Jean P.',    time:'14h45', status:'preparing'},
+  { id:'CMD-4823', product:'Probiotiques Lactibiane',  brand:'Pileje',    client:'Sophie L.',  time:'15h02', status:'ready'   },
+  { id:'CMD-4819', product:'Ashwagandha KSM-66®',     brand:'Nutri&Co',  client:'Lucas M.',   time:'13h55', status:'done'    },
+];
+const STATUS_LBL = { pending:'En attente', preparing:'En préparation', ready:'Prêt pour livreur', done:'Livré ✓' };
+const STATUS_CLR = { pending:'bg-orange-100 text-orange-700', preparing:'bg-blue-100 text-blue-700', ready:'bg-emerald-100 text-emerald-700', done:'bg-gray-100 text-gray-500' };
+
+function PharmacieLanding({ onPricing, onDashboard, onBack }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <div className="px-5 pt-5 pb-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 active:bg-gray-200">←</button>
+        <span className="font-black text-gray-900">Espace pharmacie partenaire</span>
+      </div>
+      <div className="bg-gradient-to-b from-blue-700 to-blue-900 px-6 pt-10 pb-12 text-center">
+        <div className="text-6xl mb-4">🏥</div>
+        <h1 className="text-2xl font-black text-white">Rejoignez le réseau Livraisanté</h1>
+        <p className="text-blue-300 text-sm mt-2 font-medium">Augmentez vos ventes sans coût variable à la commande</p>
+      </div>
+      <div className="px-5 py-5 space-y-3">
+        {[['📈','Commandes supplémentaires','Captez des clients hors de votre zone de chalandise'],
+          ['🛵','Livraison 100% prise en charge','Nos livreurs gèrent le dernier kilomètre'],
+          ['📱','Visibilité digitale','Votre officine référencée en tête de liste dans l\'app'],
+          ['📊','Dashboard temps réel','Commandes, préparation, livreur — tout en un'],
+        ].map(([icon,title,sub])=>(
+          <div key={title} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+            <span className="text-2xl flex-shrink-0">{icon}</span>
+            <div><p className="font-bold text-gray-900 text-sm">{title}</p><p className="text-xs text-gray-500 mt-0.5">{sub}</p></div>
+          </div>
+        ))}
+      </div>
+      <div className="px-5 pb-6 space-y-3 mt-auto">
+        <button onClick={onPricing} className="w-full py-4 bg-blue-700 text-white font-black rounded-2xl active:bg-blue-800">Voir les offres partenaires →</button>
+        <button onClick={onDashboard} className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl active:bg-gray-200">Accéder à mon espace</button>
+      </div>
+    </div>
+  );
+}
+
+function PharmaciePricing({ onSignup, onBack }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="px-5 pt-5 pb-4 flex items-center gap-3 border-b border-gray-100 bg-white">
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 active:bg-gray-200">←</button>
+        <span className="font-black text-gray-900">Offres partenaires</span>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+        <div className="text-center">
+          <p className="font-black text-gray-900 text-xl">Choisissez votre formule</p>
+          <p className="text-sm text-gray-500 mt-1">Abonnement annuel HT · <strong>Sans commission</strong> par commande</p>
+        </div>
+        {PHARMA_PLANS.map(plan=>(
+          <div key={plan.id} className={`bg-white rounded-2xl border-2 overflow-hidden shadow-sm ${plan.badge?'border-gray-900':'border-gray-200'}`}>
+            {plan.badge&&<div className="bg-gray-900 px-4 py-2 text-center"><span className="text-xs font-black text-white">{plan.badge}</span></div>}
+            <div className="p-5">
+              <span className={`inline-block text-xs font-black px-3 py-1 rounded-full text-white mb-3 ${plan.color}`}>{plan.name}</span>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-black text-gray-900">{plan.price} €</span>
+                <span className="text-sm text-gray-500">/an HT</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">soit {plan.priceM} €/mois · renouvellement automatique</p>
+              <div className="space-y-2 mb-5">
+                {plan.features.map(f=>(
+                  <div key={f} className="flex items-start gap-2"><span className="text-emerald-500 font-black text-sm flex-shrink-0 mt-0.5">✓</span><span className="text-sm text-gray-700">{f}</span></div>
+                ))}
+              </div>
+              <button onClick={()=>onSignup(plan)} className={`w-full py-3.5 text-white font-black rounded-xl active:opacity-90 ${plan.color}`}>Choisir {plan.name} →</button>
+            </div>
+          </div>
+        ))}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+          <p className="text-sm font-bold text-blue-800 mb-1">💡 ROI rapide</p>
+          <p className="text-xs text-blue-700">Avec 3 commandes supplémentaires/mois à 13 € de marge nette chacune, l'offre Essentielle est rentabilisée en moins de 10 mois — sans aucune commission par vente.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PHARMA_SIGNUP_STEPS = ['Officine','Titulaire','Laboratoires','Paiement'];
+const ALL_LABS = ['Nat&Form','Juvamine','Solgar','Pileje','Arkopharma','Arkorelax','Nutri&Co','SuperDiet'];
+
+function PharmacieSignup({ plan, onComplete, onBack }) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({ labs:[] });
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const toggleLab = lab => setForm(f=>({ ...f, labs:f.labs.includes(lab)?f.labs.filter(l=>l!==lab):[...f.labs,lab] }));
+  const maxLabs = plan?.id==='premium' ? 99 : 3;
+  const next = () => step<3?setStep(s=>s+1):onComplete();
+  const prev = () => step>0?setStep(s=>s-1):onBack();
+  const steps = [
+    <div key={0} className="space-y-3">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Informations de l'officine</p>
+      {[['Nom de la pharmacie','nomPharma','text','Ex : Pharmacie du Centre'],
+        ['Numéro FINESS (9 chiffres)','finess','text','Ex : 750012345'],
+        ['Numéro SIRET (14 chiffres)','siret','text','Ex : 12345678901234'],
+        ['Adresse complète','adresse','text','Rue, code postal, ville'],
+        ['Téléphone','tel','tel','01 XX XX XX XX'],
+        ['Email professionnel','email','email','contact@votrepharmacie.fr'],
+      ].map(([lbl,k,t,ph])=>(
+        <div key={k}>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">{lbl}</label>
+          <input type={t} placeholder={ph} value={form[k]||''} onChange={e=>set(k,e.target.value)}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400"/>
+        </div>
+      ))}
+    </div>,
+    <div key={1} className="space-y-3">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Titulaire de l'officine</p>
+      {[['Prénom','prenomTit','text'],['Nom','nomTit','text'],['N° inscription Ordre des Pharmaciens','ordreNum','text'],['Section de l\'Ordre (ex : Section A)','section','text']].map(([lbl,k,t])=>(
+        <div key={k}>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">{lbl}</label>
+          <input type={t} placeholder={lbl} value={form[k]||''} onChange={e=>set(k,e.target.value)}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400"/>
+        </div>
+      ))}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p className="text-xs font-bold text-blue-800 mb-1">📋 Vérification Ordre des Pharmaciens</p>
+        <p className="text-xs text-blue-700">Votre inscription sera vérifiée auprès du Conseil National de l'Ordre avant activation du compte.</p>
+      </div>
+    </div>,
+    <div key={2} className="space-y-2">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Laboratoires référencés</p>
+        <span className="text-xs font-bold text-blue-600">{form.labs.length}/{plan?.id==='premium'?'∞':maxLabs}</span>
+      </div>
+      {plan?.id!=='premium'&&<p className="text-xs text-amber-600 font-medium mb-3">⚠️ Offre Essentiel : max {maxLabs} laboratoires. Passez Premium pour accès illimité.</p>}
+      {ALL_LABS.map(lab=>{
+        const checked=form.labs.includes(lab);
+        const disabled=!checked&&form.labs.length>=maxLabs;
+        return (
+          <button key={lab} onClick={()=>!disabled&&toggleLab(lab)} disabled={disabled}
+            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${checked?'border-blue-500 bg-blue-50':disabled?'border-gray-100 bg-gray-50 opacity-40':'border-gray-200 bg-white active:bg-gray-50'}`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${checked?'border-blue-500 bg-blue-500':'border-gray-300'}`}>
+              {checked&&<span className="text-white text-xs font-black">✓</span>}
+            </div>
+            <span className={`font-bold text-sm ${checked?'text-blue-900':'text-gray-700'}`}>{lab}</span>
+          </button>
+        );
+      })}
+    </div>,
+    <div key={3} className="space-y-4">
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Récapitulatif & paiement</p>
+      <div className={`rounded-2xl p-4 text-white ${plan?.color||'bg-blue-600'}`}>
+        <p className="font-black text-lg">{plan?.name}</p>
+        <div className="flex items-baseline gap-2 mt-1"><span className="text-3xl font-black">{plan?.price} €</span><span className="text-sm opacity-80">HT/an</span></div>
+        <p className="text-xs opacity-70 mt-1">soit {plan?.priceM} €/mois · sans commission par commande</p>
+      </div>
+      {[['Numéro de carte','cardNum','XXXX XXXX XXXX XXXX'],['Date d\'expiration','cardExp','MM/AA'],['CVV','cardCvv','XXX']].map(([lbl,k,ph])=>(
+        <div key={k}>
+          <label className="text-xs font-bold text-gray-500 mb-1 block">{lbl}</label>
+          <input type="text" placeholder={ph} value={form[k]||''} onChange={e=>set(k,e.target.value)}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-blue-400"/>
+        </div>
+      ))}
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <input type="checkbox" checked={!!form.cgu} onChange={e=>set('cgu',e.target.checked)} className="mt-0.5 accent-blue-600"/>
+        <span className="text-xs text-gray-700">J'accepte les CGU, la convention de partenariat et la politique RGPD de Livraisanté</span>
+      </label>
+      <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+        <span>🔒 SSL</span><span>·</span><span>🛡️ RGPD</span><span>·</span><span>📄 Facture HT</span>
+      </div>
+    </div>,
+  ];
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      <div className="px-5 pt-5 pb-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={prev} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 active:bg-gray-200">←</button>
+        <div className="flex-1">
+          <p className="text-xs text-gray-400">Étape {step+1}/{PHARMA_SIGNUP_STEPS.length}</p>
+          <p className="text-sm font-black text-gray-900">{PHARMA_SIGNUP_STEPS[step]}</p>
+        </div>
+        <span className={`text-xs font-black px-2.5 py-1 rounded-full text-white ${plan?.color||'bg-blue-600'}`}>{plan?.id==='premium'?'Premium':'Essentiel'}</span>
+      </div>
+      <div className="px-5 pt-3 pb-1"><div className="flex gap-1">{PHARMA_SIGNUP_STEPS.map((_,i)=><div key={i} className={`flex-1 h-1 rounded-full transition-all ${i<=step?'bg-blue-500':'bg-gray-200'}`}/>)}</div></div>
+      <div className="flex-1 overflow-y-auto px-5 py-5">{steps[step]}</div>
+      <div className="px-5 py-4 border-t border-gray-100">
+        <button onClick={next} className={`w-full py-4 text-white font-black rounded-2xl active:opacity-90 ${plan?.color||'bg-blue-600'}`}>
+          {step<3?'Continuer →':'✓ Confirmer le paiement'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PharmacieDashboard({ onBack }) {
+  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const [tab, setTab] = useState('orders');
+  const updateStatus = (id,st) => setOrders(o=>o.map(ord=>ord.id===id?{...ord,status:st}:ord));
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="bg-gray-900 px-5 pt-5 pb-5">
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center font-bold text-white active:bg-white/25">←</button>
+          <div className="flex-1"><p className="text-xs text-gray-400">Pharmacie Centrale République</p><p className="font-black text-white">Tableau de bord</p></div>
+          <div className="bg-gray-900 px-2.5 py-1 rounded-full"><span className="text-xs font-black text-white">✓ Premium</span></div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[['📦','Commandes auj.','4'],['💰','CA aujourd\'hui','62 €'],['⏳','En attente',`${orders.filter(o=>o.status==='pending').length}`]].map(([icon,lbl,val])=>(
+            <div key={lbl} className="bg-white/10 rounded-xl p-3 text-center">
+              <p className="text-xl">{icon}</p><p className="font-black text-white text-base mt-0.5">{val}</p><p className="text-xs text-gray-400">{lbl}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex bg-white border-b border-gray-200">
+        {[['orders','📦 Commandes'],['network','🏥 Réseau partenaires']].map(([t,lbl])=>(
+          <button key={t} onClick={()=>setTab(t)} className={`flex-1 py-3 text-xs font-black transition-all ${tab===t?'text-gray-900 border-b-2 border-gray-900':'text-gray-400'}`}>{lbl}</button>
+        ))}
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
+        {tab==='orders'&&(
+          <div className="space-y-3">
+            {orders.map(order=>(
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-gray-900 text-sm truncate">{order.product}</p>
+                    <p className="text-xs text-gray-400">{order.brand} · {order.id}</p>
+                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS_CLR[order.status]}`}>{STATUS_LBL[order.status]}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                  <span>👤 {order.client}</span><span>🕐 {order.time}</span>
+                </div>
+                {order.status==='pending'&&<button onClick={()=>updateStatus(order.id,'preparing')} className="w-full py-2.5 bg-blue-600 text-white font-bold rounded-xl text-xs active:bg-blue-700">✓ Confirmer · Démarrer la préparation</button>}
+                {order.status==='preparing'&&<button onClick={()=>updateStatus(order.id,'ready')} className="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs active:bg-emerald-700">📦 Prêt — Appeler le livreur</button>}
+                {order.status==='ready'&&<div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 text-center">✓ Livreur notifié — en route</div>}
+                {order.status==='done'&&<div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-500 text-center">Livraison confirmée</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==='network'&&(
+          <div className="space-y-3">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wider">{PHARMACIES.length} officines partenaires actives</p>
+            {PHARMACIES.map(p=>(
+              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 text-sm">{p.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{p.address}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">📞 {p.phone}</p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {p.brands.slice(0,3).map(b=><span key={b} className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">{b}</span>)}
+                      {p.brands.length>3&&<span className="text-xs text-gray-400 font-medium">+{p.brands.length-3}</span>}
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full block ${isPharmOpen(p)?'bg-emerald-100 text-emerald-700':'bg-gray-100 text-gray-500'}`}>{isPharmOpen(p)?'✓ Ouvert':'Fermé'}</span>
+                    <p className="text-xs text-gray-400 mt-1">{p.distance} km</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PharmacieApp({ onBack }) {
+  const [screen, setScreen] = useState('landing');
+  const [plan, setPlan] = useState(null);
+  if (screen==='landing')   return <PharmacieLanding onPricing={()=>setScreen('pricing')} onDashboard={()=>setScreen('dashboard')} onBack={onBack}/>;
+  if (screen==='pricing')   return <PharmaciePricing onSignup={p=>{setPlan(p);setScreen('signup');}} onBack={()=>setScreen('landing')}/>;
+  if (screen==='signup')    return <PharmacieSignup plan={plan} onComplete={()=>setScreen('dashboard')} onBack={()=>setScreen('pricing')}/>;
+  if (screen==='dashboard') return <PharmacieDashboard onBack={onBack}/>;
+  return null;
+}
+
+/* ─── APP (routeur) ───────────────────────────────────────────────── */
+function App() {
+  const [mode, setMode] = useState('selector');
+  const [screen, setScreen] = useState('home');
+  const [query, setQuery] = useState('');
+  const [recs, setRecs] = useState([]);
+  const [product, setProduct] = useState(null);
+  const [rank, setRank] = useState(0);
+  const [isSub, setIsSub] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState('livraison');
+
+  const go = s => setScreen(s);
+
+  const onSearch = q => { setQuery(q); go('analysis'); };
+  const onComplete = r => { setRecs(r); go('results'); };
+  const onSelect = (p, i) => { setProduct(p); setRank(i); setIsSub(false); go('product'); };
+  const onRestart = () => { setQuery(''); setRecs([]); setProduct(null); setIsSub(false); go('home'); };
+
+  const selectMode = m => { setMode(m); setScreen('home'); };
+  const backToSelector = () => { setMode('selector'); setScreen('home'); };
+
+  const PATIENT_SCREENS = {
+    home:         <HomeScreen onSearch={onSearch} onBack={backToSelector} deliveryMode={deliveryMode} setDeliveryMode={setDeliveryMode} />,
+    analysis:     <AnalysisScreen query={query} onComplete={onComplete} />,
+    results:      <ResultsScreen query={query} recs={recs} isSubscription={isSub} onSelectProduct={onSelect} onBack={() => go('home')} />,
+    product:      product && <ProductScreen product={product} rank={rank} isSubscription={isSub} setIsSubscription={setIsSub} onAddToCart={() => go('payment')} onBack={() => go('results')} deliveryMode={deliveryMode} />,
+    payment:      product && <PaymentScreen product={product} isSubscription={isSub} onConfirm={() => go('confirmation')} onBack={() => go('product')} deliveryMode={deliveryMode} />,
+    confirmation: product && <ConfirmationScreen product={product} isSubscription={isSub} onRestart={onRestart} deliveryMode={deliveryMode} />,
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-200 flex items-start justify-center py-0 sm:py-8">
+      <div className="w-full max-w-sm min-h-screen bg-white shadow-2xl overflow-hidden relative sm:rounded-3xl sm:min-h-0 sm:max-h-[780px] sm:overflow-y-auto">
+        {mode === 'selector'  && <AppSelector onSelect={selectMode} />}
+        {mode === 'patient'   && (PATIENT_SCREENS[screen] || PATIENT_SCREENS.home)}
+        {mode === 'livreur'   && <LivreurApp onBack={backToSelector} />}
+        {mode === 'pharmacie' && <PharmacieApp onBack={backToSelector} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<!-- ── Service Worker + Bannière d'installation PWA ──────────── -->
+<script>
+/* Enregistrement du Service Worker */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] Enregistré :', reg.scope))
+      .catch(err => console.warn('[SW] Erreur :', err));
+  });
+}
+
+/* Bannière d'installation "Ajouter à l'écran d'accueil" */
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  /* Afficher la bannière après 3 secondes */
+  setTimeout(() => {
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.style.display = 'flex';
+  }, 3000);
+});
+
+function installPWA() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(result => {
+    console.log('[PWA] Installation :', result.outcome);
+    deferredPrompt = null;
+  });
+}
+
+function dismissInstall() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+/* Masquer la bannière si déjà installée */
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+  console.log('[PWA] Application installée avec succès');
+});
+</script>
+
+<!-- ── Bannière d'installation (HTML) ─────────────────────────── -->
+<div id="pwa-install-banner" style="
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #111111;
+  color: white;
+  padding: 14px 16px;
+  align-items: center;
+  gap: 12px;
+  z-index: 9999;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+">
+  <!-- Logo -->
+  <svg width="36" height="36" viewBox="0 0 100 100" fill="none" style="flex-shrink:0">
+    <rect x="13" y="3" width="28" height="46" rx="14" stroke="white" stroke-width="6.5" fill="none"/>
+    <line x1="13" y1="26" x2="41" y2="26" stroke="white" stroke-width="4.5"/>
+    <circle cx="27" cy="59" r="15" stroke="white" stroke-width="6.5" fill="none"/>
+    <line x1="16" y1="70" x2="38" y2="48" stroke="white" stroke-width="4.5"/>
+    <line x1="39" y1="15" x2="74" y2="2" stroke="white" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="6" y1="76" x2="68" y2="76" stroke="white" stroke-width="6.5" stroke-linecap="round"/>
+    <circle cx="20" cy="89" r="8" fill="white"/>
+    <circle cx="55" cy="89" r="8" fill="white"/>
+  </svg>
+  <!-- Texte -->
+  <div style="flex:1; min-width:0;">
+    <p style="margin:0; font-weight:900; font-size:14px; line-height:1.2;">Installer Livraisanté</p>
+    <p style="margin:0; font-size:11px; opacity:0.7; margin-top:2px;">Accès rapide depuis votre écran d'accueil</p>
+  </div>
+  <!-- Boutons -->
+  <button onclick="installPWA()" style="
+    background: white; color: black; border: none; border-radius: 20px;
+    padding: 8px 16px; font-weight: 900; font-size: 12px; cursor: pointer; flex-shrink:0;
+  ">Installer</button>
+  <button onclick="dismissInstall()" style="
+    background: none; border: none; color: white; opacity: 0.6;
+    font-size: 20px; cursor: pointer; padding: 4px; flex-shrink:0; line-height:1;
+  ">✕</button>
+</div>
+
+</body>
+</html>
